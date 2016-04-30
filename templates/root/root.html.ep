@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mojo::Chat!</title>
+</head>
+<body>
+Name : <%= text_field hmm => '', size => 20, id => 'name' %><br>
+<%= text_area profile => '', cols => 50, rows => 5, id => 'form' %>
+<input type="button" id="submit" value="送信">
+<div id="log">
+  % my $num = 0;
+  % for (@$message) {
+      <p><%== $_->name %> say: <br><%== $_->message %></p>
+  %   $num++;
+  % }
+</div>
+<script>
+  'use strict';
+
+  /* web socket 受信 */
+  var ws = new WebSocket('<%= url_for('/channel')->to_abs->scheme('ws') %>');
+  ws.onmessage = function (eve) {
+    var json = JSON.parse(eve.data);
+    var parentDom = document.getElementById('log');
+    var newDom = document.createElement('p');
+    newDom.innerHTML = json.name + ' say: <br>' + json.message;
+    parentDom.insertBefore(newDom, parentDom.firstChild);
+    removeLastChild(parentDom);
+  };
+
+  function removeLastChild(parentDom) {
+    var max = parentDom.children.length;
+    if (max > 20) {
+      var remove = parentDom.children[max - 1];
+      parentDom.removeChild(remove);
+    }
+  }
+
+  /* ws送信イベント発火部 */
+  document.getElementById('submit').addEventListener('click', function(eve) {
+    sendChat(document.getElementById('name'), document.getElementById('form'));
+  },false);
+  
+  /* web socket 送信部 */
+  function sendChat(name, input) {
+    if (!input.value || !name.value) { return false; }
+    var json = {
+      'name' : name.value,
+      'message' : input.value
+    };
+    ws.send(JSON.stringify(json));
+    input.value = '';
+  }
+
+  /* enterキーおしてイベント発火
+  document.onkeydown = function (e){
+    if (e.keyCode == 13) {
+      sendChat(document.getElementById('form'));
+    }
+  };
+  */
+</script>
+</body>
+</html>
